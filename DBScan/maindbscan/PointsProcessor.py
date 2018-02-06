@@ -16,12 +16,13 @@ import time
 
 class PointsProcessor:
     
-    def __init__(self, imageFilePath):
+    def __init__(self, imageFilePath, outFileName, pixelValueThreshold = 1.6, eps = 0.00035, minPts = 4):
         
         # DB Scan constants/thresholds 
-        self.pixelValueThreshold    = 1.0     #2.5
-        self.eps                    = 0.00035
-        self.minPts                 = 4
+        self.pixelValueThreshold    = float(pixelValueThreshold)
+        self.eps                    = float(eps)
+        self.minPts                 = int(minPts)
+        
         
         self.allCorePoints      = []
         self.coreToReachables   = {}
@@ -30,17 +31,17 @@ class PointsProcessor:
         self.clusters           = []
         
         start = time.time()
-        self.driver(imageFilePath)
+        self.driver(outFileName, imageFilePath)
         print("\nRuning time:\t" + str(time.time() - start))
 
     
     """
         The driver method runs the current class.
     """    
-    def driver(self, inpFile = None):
+    def driver(self, outFileName, inpFile = None):
         
         pixelPointsAboveThres = self.readImage(inpFile)
-        print("pixelPointsAboveThres =\t" + str(len(pixelPointsAboveThres)))
+        print("\npixelPointsAboveThres =\t" + str(len(pixelPointsAboveThres)))
         
         self.findCoreAndReachables(pixelPointsAboveThres)
         print("allCorePoints =\t" + str(len(self.allCorePoints)))
@@ -52,7 +53,7 @@ class PointsProcessor:
         self.addingReachablesToClusters()
         print("clusters =\t" + str(len(self.clusters)))
         
-        self.printingClusters(os.path.dirname(inpFile))
+        self.printingClusters(os.path.dirname(inpFile), outFileName)
         
         ## DEBUGGING EVERYTHING:
         i = 0
@@ -87,7 +88,7 @@ class PointsProcessor:
         Find Core Points that are close to each Core Point (same eps as in Reachables)
         Use corePointToCloseCorePoints dictionary and create legitimate clusters of Core Points.
     """
-    def printingClusters(self, outDir, printCHPolygons = True, printMPoints = False):
+    def printingClusters(self, outDir, outFileName, printCHPolygons = True, printMPoints = False):
         
         clustersMultipoints = []
         clustersCHPolygons  = []
@@ -98,11 +99,11 @@ class PointsProcessor:
         for mps in clustersMultipoints:
             clustersCHPolygons.append(mps.convex_hull)
               
-        outFile = os.path.join(outDir, "DBScanClusters_new.txt")
+        outFile = os.path.join(outDir, outFileName)
         with open(outFile, "w") as out:
             
             if printCHPolygons:
-                out.write("Clusters as Polygons(convex_hull):\n")
+#                 out.write("Clusters as Polygons(convex_hull):\n")
                 for polygon in clustersCHPolygons:
                     out.write(str(polygon) + "\n")
             
@@ -270,9 +271,18 @@ class PointsProcessor:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 3:
         print("Going to read input from file: " + sys.argv[1])
-        pointsProcessor = PointsProcessor(sys.argv[1]);
+        print("Going to write output to file: " + sys.argv[2])
+        print("No parameters for DBScan defined. Going to use defaults.")
+        pointsProcessor = PointsProcessor(sys.argv[1], sys.argv[2]);
+    elif len(sys.argv) == 6:
+        print("Going to read input from file: " + sys.argv[1])
+        print("Going to write output to file: " + sys.argv[2])
+        print("User defined pixelValueThreshold =\t" + sys.argv[3])
+        print("User defined eps =\t\t\t" + sys.argv[4])
+        print("User defined minPts =\t\t\t" + sys.argv[5])
+        pointsProcessor = PointsProcessor(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]);     
     else:
-        print("No input file defined.")
+        print("No valid arguments.")
         sys.exit(2)
