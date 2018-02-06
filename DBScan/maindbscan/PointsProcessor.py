@@ -4,12 +4,11 @@ Created on Dec 19, 2017
 @author: indiana
 '''
 
-import numpy
 from osgeo import gdal
-from shapely.geometry import LineString
+#from shapely.geometry import LineString
 from shapely.geometry import MultiPoint
 from shapely.geometry import Point
-from shapely.geometry import Polygon
+#from shapely.geometry import Polygon
 import sys, os
 import time
 
