@@ -15,7 +15,7 @@ import time
 
 class PointsProcessor:
     
-    def __init__(self, imageFilePath, outFileName, pixelValueThreshold = 1.6, eps = 0.00035, minPts = 4):
+    def __init__(self, imageFilePath, outFileName, pixelValueThreshold = 2, eps = 0.001786, minPts = 4):
         
         # DB Scan constants/thresholds 
         self.pixelValueThreshold    = float(pixelValueThreshold)
