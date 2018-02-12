@@ -15,7 +15,7 @@ import time
 
 class PointsProcessor:
     
-    def __init__(self, imageFilePath, outFileName, pixelValueThreshold = 2, eps = 0.001786, minPts = 4):
+    def __init__(self, imageFilePath, outFileName, pixelValueThreshold = 3.2, eps = 0.000269, minPts = 4):
         
         # DB Scan constants/thresholds 
         self.pixelValueThreshold    = float(pixelValueThreshold)
@@ -29,9 +29,13 @@ class PointsProcessor:
         self.corePointsInClusters   = []
         self.clusters           = []
         
+        self.loglike = os.path.join(os.path.dirname(imageFilePath), "log-like.txt")
+        
         start = time.time()
         self.driver(outFileName, imageFilePath)
-        print("\nRuning time:\t" + str(time.time() - start))
+        #print("\nRunning time:\t" + str(time.time() - start))
+        with open(self.loglike, "a") as out:
+            out.write("\nRunning time:\t" + str(time.time() - start))
 
     
     """
@@ -40,21 +44,31 @@ class PointsProcessor:
     def driver(self, outFileName, inpFile = None):
         
         pixelPointsAboveThres = self.readImage(inpFile)
-        print("\npixelPointsAboveThres =\t" + str(len(pixelPointsAboveThres)))
+        with open(self.loglike, "a") as out:
+            out.write("\npixelPointsAboveThres =\t" + str(len(pixelPointsAboveThres)))
+        #print("\npixelPointsAboveThres =\t" + str(len(pixelPointsAboveThres)))
         
         self.findCoreAndReachables(pixelPointsAboveThres)
-        print("allCorePoints =\t" + str(len(self.allCorePoints)))
-        print("coreToReachables =\t" + str(len(self.coreToReachables)))
+        with open(self.loglike, "a") as out:
+            out.write("\nallCorePoints =\t" + str(len(self.allCorePoints)))
+            out.write("\ncoreToReachables =\t" + str(len(self.coreToReachables)))
+        #print("allCorePoints =\t" + str(len(self.allCorePoints)))
+        #print("coreToReachables =\t" + str(len(self.coreToReachables)))
         
         self.clusteringCorePoints()
-        print("corePointsInClusters =\t" + str(len(self.corePointsInClusters)))
+        with open(self.loglike, "a") as out:
+            out.write("\ncorePointsInClusters =\t" + str(len(self.corePointsInClusters)))
+        #print("corePointsInClusters =\t" + str(len(self.corePointsInClusters)))
         
         self.addingReachablesToClusters()
-        print("clusters =\t" + str(len(self.clusters)))
+        with open(self.loglike, "a") as out:
+            out.write("\nclusters =\t" + str(len(self.clusters)))
+        #print("clusters =\t" + str(len(self.clusters)))
         
         self.printingClusters(os.path.dirname(inpFile), outFileName)
         
         ## DEBUGGING EVERYTHING:
+        deb_time = time.time()
         i = 0
         n = 0
         onlyReachables = []
@@ -72,12 +86,17 @@ class PointsProcessor:
             clusterToReacheables[str(i)] = onlyReachables
             onlyReachables = []
             
-            print("CL" + str(i) + " has " + str(len(cl)) + " points.\t" + str(k) + " of them are plain reachables.")
+            with open(self.loglike, "a") as out:
+                out.write("\nCL" + str(i) + " has " + str(len(cl)) + " points.\t" + str(k) + " of them are plain reachables.")
+            #print("CL" + str(i) + " has " + str(len(cl)) + " points.\t" + str(k) + " of them are plain reachables.")
                     
+        with open(self.loglike, "a") as out:
+            out.write("\n\nall points in clusters =\t" + str(n))
+            out.write("\nallPointsOfInterest are = " + str(len(allPointsOfInterest)))
+            out.write("\n\ndeb-time = " + str(time.time() - deb_time))
+        #print("all points in clusters =\t" + str(n))
         
-        print("all points in clusters =\t" + str(n))
-        
-        print("allPointsOfInterest are = " + str(len(allPointsOfInterest)))
+        #print("allPointsOfInterest are = " + str(len(allPointsOfInterest)))
 #         multiAllPointsOfInterest = MultiPoint(allPointsOfInterest)
 #         print("\nall points of interest:\n" + str(multiAllPointsOfInterest) + "\n")
         
@@ -177,7 +196,9 @@ class PointsProcessor:
                 legitClusterOfCorePoints = self._checkCluster(cluster, corePointToCloseCorePoints)
                 self.corePointsInClusters.append(legitClusterOfCorePoints)
                 
-                print(str(i) + "\t" + str(len(legitClusterOfCorePoints)) + "\t" + str(len(self.checkedCorePoints)))
+                with open(self.loglike, "a") as out:
+                    out.write("\n" + str(i) + "\t" + str(len(legitClusterOfCorePoints)) + "\t" + str(len(self.checkedCorePoints)))
+                #print(str(i) + "\t" + str(len(legitClusterOfCorePoints)) + "\t" + str(len(self.checkedCorePoints)))
                 i = i + 1
     
     
@@ -226,13 +247,20 @@ class PointsProcessor:
         
         pixelPointsAboveThres = []
         
-        for i in range(rows):
-            for j in range(cols):
-                if pixelsAsNDArray[j][i] < -self.pixelValueThreshold or pixelsAsNDArray[j][i] > self.pixelValueThreshold:
-                    x = a * i + b * j + xoff
-                    y = d * i + e * j + yoff
-                    pointInMap = Point(x, y)
-                    pixelPointsAboveThres.append(pointInMap)
+        print(str(len(pixelPointsAboveThres)))
+        
+        while len(pixelPointsAboveThres) < 300 and self.pixelValueThreshold > 1:
+            self.pixelValueThreshold = self.pixelValueThreshold - 0.1
+            for i in range(rows):
+                for j in range(cols):
+                    if pixelsAsNDArray[j][i] < -self.pixelValueThreshold or pixelsAsNDArray[j][i] > self.pixelValueThreshold:
+                        x = a * i + b * j + xoff
+                        y = d * i + e * j + yoff
+                        pointInMap = Point(x, y)
+                        pixelPointsAboveThres.append(pointInMap)
+            
+            print(str(len(pixelPointsAboveThres)))
+            print(str(self.pixelValueThreshold))
                     
         ## If you want to view all points in map:
 #         multiPointsAboveThres = MultiPoint(pixelPointsAboveThres)
