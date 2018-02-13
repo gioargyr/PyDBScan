@@ -8,14 +8,14 @@ from osgeo import gdal
 #from shapely.geometry import LineString
 from shapely.geometry import MultiPoint
 from shapely.geometry import Point
-#from shapely.geometry import Polygon
+from shapely.geometry import Polygon
 import sys, os
 import time
 
 
 class PointsProcessor:
     
-    def __init__(self, imageFilePath, outFileName, pixelValueThreshold = 3.2, eps = 0.000269, minPts = 4):
+    def __init__(self, imageFilePath, outFileName, pixelValueThreshold = 3.1, eps = 0.000269, minPts = 5):
         
         # DB Scan constants/thresholds 
         self.pixelValueThreshold    = float(pixelValueThreshold)
@@ -123,7 +123,8 @@ class PointsProcessor:
             if printCHPolygons:
 #                 out.write("Clusters as Polygons(convex_hull):\n")
                 for polygon in clustersCHPolygons:
-                    out.write(str(polygon) + "\n")
+                    if isinstance(polygon, Polygon):
+                        out.write(str(polygon) + "\n")
             
             if printMPoints:
                 out.write("Clusters as MultiPoints:\n")
@@ -246,10 +247,9 @@ class PointsProcessor:
         xoff, a, b, yoff, d, e = imageAsData.GetGeoTransform()
         
         pixelPointsAboveThres = []
-        
-        print(str(len(pixelPointsAboveThres)))
-        
-        while len(pixelPointsAboveThres) < 300 and self.pixelValueThreshold > 1:
+           
+        while len(pixelPointsAboveThres) < 400 and self.pixelValueThreshold > 1:
+            pixelPointsAboveThres = []
             self.pixelValueThreshold = self.pixelValueThreshold - 0.1
             for i in range(rows):
                 for j in range(cols):
@@ -285,7 +285,9 @@ class PointsProcessor:
             
             if len(reachablePoints) > self.minPts:
                 self.allCorePoints.append(possibleCorePoint)
+                #print(str(len(self.allCorePoints)))
                 self.coreToReachables[str(possibleCorePoint)] = reachablePoints
+                #print(str(len(self.coreToReachables)))
             
             reachablePoints = []
         
